@@ -12,7 +12,7 @@ if GPIO:
 
 class Engine:
 	_left_engine = 0
-	_rigth_engine =0
+	_rigth_engine = 0
 
 	__throtle = 0.0
 	__gyro = 0.0
@@ -78,7 +78,9 @@ class Engine:
 			rPower = max(0, rPower - abs(self.__gyro))
 
 		# ESCRIBIR LPOWER && RPOWER EN PWM WIRINGPI2
-		print(str(lPower) + " " + str(rPower))
+		if GPIO:
+			gpio.softPwmWrite(self._left_engine, int(lPower * 100))
+        	gpio.softPwmWrite(self._rigth_engine, int(rPower * 100))
 
 class Bobot(Engine):
 	_instance = None
