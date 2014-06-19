@@ -104,6 +104,9 @@ class Bobot(Engine):
 			self.throttle(speed)
 			i -= 1
 
+	def turn(self, angle = 0):
+		# girar dado un angulo
+		pass
 
 	def turnLeft(self, speed = 1.0, times = 1):
 		i = times
