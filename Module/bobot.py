@@ -6,9 +6,32 @@ GPIO = False
 from abc import ABCMeta, abstractmethod
 from threading import Thread
 import time
+import socket
 
 if GPIO:
 	import wiringpi2 as gpio
+
+class Controller:
+	@abstractmethod
+	def connect(self): pass
+
+	@abstractmethod
+	def send(self, data = None): pass
+
+class WiFi(Controller):
+	_connection = None 
+
+	def __init__(self):
+		self._connection = socket(socket.AF_INET, socket.SOCK_STREAM)
+
+	def connect(self):
+		
+		return False;
+
+	def send(self, data = None):
+		if data:
+			self._socket.write()
+
 
 class Engine:
 	_left_engine = 0
@@ -20,6 +43,15 @@ class Engine:
 	def __init__(self, left, rigth):
 		self._left_engine = left
 		self._rigth_engine= rigth
+
+		if GPIO:
+			gpio.wiringPiSetupGpio()
+
+			gpio.pinMode(self._left_engine,  1)
+			gpio.pinMode(self._rigth_engine, 1)
+
+			gpio.softPwmCreate(self._left_engine,0,100)
+			gpio.softPwmCreate(self._rigth_engine,0,100)
 
 # Este metodo define la acceleration de los motores
 # x2. Los valores recibidos por este método son valores
