@@ -16,15 +16,26 @@ public class ImageFrame {
     private BufferedImage context;
     private long size;
     private long created;
+    private long remoteTimestamp;
 
     public ImageFrame(BufferedImage context) {
         this.context = context;
+        
+        this.remoteTimestamp = 0;
     }
     
     public BufferedImage getContext() {
         return context;
     }
 
+    public void setRemoteTimestamp(long timestamp) {
+        remoteTimestamp = timestamp;
+    }
+    
+    public long getRemoteTimestamp() {
+        return remoteTimestamp;
+    }
+    
     public long getSize() {
         return size;
     }

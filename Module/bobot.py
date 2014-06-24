@@ -1,180 +1,300 @@
-# -*- coding: utf-8 -*-
 #!/usr/bin/python
-
-GPIO = False
-
-from abc import ABCMeta, abstractmethod
-from threading import Thread
+# -*- coding: utf-8 -*-
+import io
+import cv
+import cv2
+import sys
 import time
+import getopt
 import socket
+from threading import Thread
 
-if GPIO:
-	import wiringpi2 as gpio
+HEADER = '\033[95m'
+OK = '\033[94m'
+WARNING = '\033[93m'
+FAIL = '\033[91m'
+ENDC = '\033[0m'
 
-class Controller:
-	@abstractmethod
-	def connect(self): pass
+VERSION = "1.0.0 Alpha"
 
-	@abstractmethod
-	def send(self, data = None): pass
+IP = "127.0.0.1"
+PORT = 9999
 
-class WiFi(Controller):
-	_connection = None 
+CAMERA = None
+CAMERA_ENABLE = False
+CAMERA_PORT = 9998
+CAMERA_WIDTH = 640
+CAMERA_HEIGHT = 480
+CAMERA_QUALITY = 75
+CAMERA_FPS = 10
+CAMERA_MTU= 7981
 
-	def __init__(self):
-		self._connection = socket(socket.AF_INET, socket.SOCK_STREAM)
+channel = None
 
-	def connect(self):
-		
-		return False;
+def error(msn, fatal = False):
+	print FAIL + '[ERROR] ' + ENDC + msn
 
-	def send(self, data = None):
-		if data:
-			self._socket.write()
+	if fatal:
+		sys.exit(2)
 
+def warning(msn):
+	print WARNING + '[WARNING] ' + ENDC + msn
 
-class Engine:
-	_left_engine = 0
-	_rigth_engine = 0
+def ok(msn):
+	print OK + '[ OK ] ' + ENDC + msn
 
-	__throtle = 0.0
-	__gyro = 0.0
+def info(msn, newline = True, header = True):
+	head = ""
 
-	def __init__(self, left, rigth):
-		self._left_engine = left
-		self._rigth_engine= rigth
+	if header:
+		head = HEADER + '[INFO] ' + ENDC
 
-		if GPIO:
-			gpio.wiringPiSetupGpio()
+	if newline:
+		print head + msn
+	else:
+		print(head + msn),
 
-			gpio.pinMode(self._left_engine,  1)
-			gpio.pinMode(self._rigth_engine, 1)
+def usage():
+	print "Bobot Module."
+	print " Este es el modulo de comandos del robot."
+	print " 2014 EAFIT"
+	print ""
+	print "Modo de uso:"
 
-			gpio.softPwmCreate(self._left_engine,0,100)
-			gpio.softPwmCreate(self._rigth_engine,0,100)
+	print " -i --ip <ip> : IP a la cual se va a conectar [MAIN]"
+	print " -p --port <port> : Puerto de comunicacion [MAIN]"
+	print " * este puerto es distinto al del streaming, esta"
+	print "conexion [MAIN] se realiza via TCP mientras el streaming"
+	print "via UDP"
 
-# Este metodo define la acceleration de los motores
-# x2. Los valores recibidos por este método son valores
-# flotantes entre [0, 1.0], cualquier valor fuera de este intervalo
-# sera considerado el máximo correspondiente del intervalo.
-#
-# La aceleración esta dada por el porcentaje de energía entregada
-# a los dos motores 0% - 100% -> 0.0 - 1.0 
-	def throttle(self, throttle):
-		if throttle > 1.0:
-			throttle = 1.0
-		if throttle < 0:
-			throttle = 0
+	print ""
 
-		self.__throtle = throttle
+	# USO DE CONFIG DE LA CAMARA
+	print " -c --camera <port> : Activa el modulo de la camara, y hace stream via <port>"
+	print " --camera-width <width> : Ancho del frame"
+	print " --camera-height <height> : Alto del frame"
+	print " --camera-quality <quality> : Calidad de compresion [1, 100]"
+	print " --camera-fps <fps> : Frames que se envian cada segundo"
+	print " --camera-mtu <mtu> : Maximo tamaño de fraccion UDP"
 
-		self.motion()
+def loopmain():
+	global IP
+	global PORT
 
-# Se define el giro haciendo uso de la intensidad 
-# de los motores. Los valores recibidos por este
-# método son valores flotantes entre [-1.0, 1.0]
-# cualquier valor por encima o debajo de este 
-# intervalo sera considerado el máximo correspondiente
-# del intervalo.
-# Formas de giro: 
-#   1). Si x < 0 —> Giro a la Izquierda (Software)
-#   2). Si x > 0 —> Giro a la Derecha (Software)
-#   3). Si x == 0 —> Se mantiene recto.
-#
-# El giro hace uso de PWM así que su intensidad esta
-# dada por el porcentaje: -1.0 máxima intensidad de giro 
-# a la izquierda, -0.5 media intensidad de giro, etc.
-#
-# Es giro por Software es como esta descrito, cualquier
-# variación pude ser de Hardware.
-	def turn(self, gyro):
-		if gyro > 1.0:
-			gyro = 1.0
-		if gyro < -1.0:
-			gyro = -1.0
-		
-		self.__gyro = gyro
+	global channel
 
-		self.motion()
+	channel = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
-	def motion(self):
-		lPower = self.__throtle
-		rPower = self.__throtle
+	try:
+		channel.connect((IP, PORT))
+	except Exception:
+		error(("No esta abierta la direccion %s:%s") % (IP, PORT), fatal=True)
 
-		if self.__gyro < 0:
-			# El giro es hacia la izquierda
-			lPower = max(0, lPower - abs(self.__gyro))
+	while True:
+		try: pass
+			
 
-		elif self.__gyro > 0:
-			# El giro es hacia la derecha
-			rPower = max(0, rPower - abs(self.__gyro))
+			# sys.stdout.write("Se entrego la trama UDP: %s bytes   \r" % (sys.getsizeof(sender)))
+			# sys.stdout.flush()
+			# time.sleep(0)
+		except Exception:
+			channel.close()
+			error("Ocurrio un error fatal en la comunicacion", fatal = True)
+		except KeyboardInterrupt:
+			channel.close()
+			break
 
-		# ESCRIBIR LPOWER && RPOWER EN PWM WIRINGPI2
-		if GPIO:
-			gpio.softPwmWrite(self._left_engine, int(lPower * 100))
-			gpio.softPwmWrite(self._rigth_engine, int(rPower * 100))
+def loopcam():
+	CV_CAP_PROP_FRAME_WIDTH = 3
+	CV_CAP_PROP_FRAME_HEIGHT = 4
 
-class Bobot(Engine):
-	_instance = None
+	global CAMERA_MTU
+	global CAMERA_WIDTH
+	global CAMERA_HEIGHT
+	global CAMERA_QUALITY
+	global CAMERA_MTU
+	global CAMERA_FPS
 
-	@staticmethod
-	def instance():
-		if not Bobot._instance:
-			Bobot._instance = Bobot(1, 2)
+	global IP
+	global CAMERA_PORT
 
-		return Bobot._instance
-
-	def off(self):
-		self.throttle(0.0);
-		self.turn(0.0);
-
-	def forward(self, speed = 0.5, times = 1):
-		i = times
-
-		while i > 0:
-			self.turn(0.0)
-			self.throttle(speed)
-			i -= 1
-
-	def turn(self, angle = 0):
-		# girar dado un angulo
-		pass
-
-	def turnLeft(self, speed = 1.0, times = 1):
-		i = times
-
-		while i > 0:
-			self.turn(speed * -1.0)
-			i -= 1
-
-	def turnRigth(self, speed = 1.0, times = 1):
-		i = times
-
-		while i > 0:
-			self.turn(speed)
-			i -= 1
+	info("Configuracion de la camara:")
+	info((" -> Width: %s" % CAMERA_WIDTH), header = False)
+	info((" -> Height: %s" % CAMERA_HEIGHT), header = False)
+	info((" -> Quality: %s" % CAMERA_QUALITY), header = False)
+	info((" -> MTU: %s" % CAMERA_MTU), header = False)
+	info((" -> FPS: %s" % CAMERA_FPS), header = False)
 
 
+	capture = cv2.VideoCapture(0)
+	encode = [int(cv2.IMWRITE_JPEG_QUALITY), CAMERA_QUALITY]
 
-class Component:
-	__metaclass__ = ABCMeta
+	capture.set(CV_CAP_PROP_FRAME_WIDTH, CAMERA_WIDTH)
+	capture.set(CV_CAP_PROP_FRAME_HEIGHT, CAMERA_HEIGHT)
 
-	__name = None
-	__pin = None
+	channel = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 
-	@abstractmethod
-	def value(self): pass
+	ok("La camara esta lista para el Streaming")
 
-	@abstractmethod
-	def write(self, data): pass
+	while True:
+		try:
+			ret, frame = capture.read()
+			result, image = cv2.imencode('.jpg', frame, encode)
+
+			sender = io.BytesIO(image)
+
+			while True:
+				chunk = sender.read(CAMERA_MTU)
+
+				if chunk == "" or not chunk:
+					break
+
+				channel.sendto(chunk, (IP, CAMERA_PORT))	
+
+			time.sleep(1 / CAMERA_FPS)
+		except KeyboardInterrupt:
+			channel.close()
+			info("Flujo de datos detenido")
+			ok("Streaming finalizado")
+
+			break
+		except Exception:
+			error("Ocurrio un error en el Streaming [-1]")
+
+def init():
+	global CAMERA_ENABLE
+	global IP, PORT
+
+	info("Iniciando conexion con %s:%s" % (IP, PORT))
+
+	if CAMERA_ENABLE:
+		main = Thread(target=loopmain)
+		main.daemon = True
+		main.start()
+
+		info("Inciando Streaming via puerto %s" % CAMERA_PORT)
+		ok("La camara se configuro correctamente")
+		loopcam()
+
+	else:
+		loopmain()
+
+	ok("Conexion finalizada")
+
+def main(argv):
+	try:
+		opts, args = getopt.getopt(argv, "i:c:p:", 
+			["camera=", "camera-width=", "camera-height=", "camera-quality=", "camera-fps=", 
+			"camera-mtu=", "ip=", "port=", "help", "version"])
+	except getopt.GetoptError:
+		usage()
+		sys.exit(2)
+
+	for opt, arg in opts:
+		if opt in ("-i", "--ip"):
+			global IP
+
+			IP = arg
+
+		elif opt in ("-p", "--port"):
+			global PORT
+
+			try:
+				port = int(arg.strip())
+
+				if port > 1024 and port < 65536:
+					PORT = port
+				else:
+					warning(("MAIN: No es posible usar " + arg.strip() + ", se usara por defecto %s" % PORT))
+			except ValueError:
+				error("Puerto desconocido", fatal=True)
+		elif opt == "--help":
+			usage()
+			sys.exit(0)
+
+		elif opt in ("-c", "--camera"):
+			global CAMERA_PORT
+			global CAMERA_ENABLE
+
+			try:
+				port = int(arg.strip())
+
+				CAMERA_ENABLE = True
+
+				if port > 1024 and port < 65536:
+					CAMERA_PORT = port
+				else:
+					warning(("No es posible usar " + arg.strip() + ", se usara por defecto %s" % CAMERA_PORT))
+			except ValueError:
+				error("Puerto desconocido", fatal=True)
 
 
-#####################################################
-######         PRUEBA DE FUNCIONAMIENTO       #######
-#####################################################
+		elif opt == "--camera-width":
+			global CAMERA_WIDTH
 
-robot = Bobot.instance()
-robot.forward()
-robot.turnLeft()
-robot.forward(times = 25)
+			try:
+				CAMERA_WIDTH = int(arg.strip())
+			except ValueError:
+				warning("No fue posible configurar el ancho del frame, se usara por defecto " + CAMERA_WIDTH)
 
+		elif opt == "--camera-height":
+			global CAMERA_HEIGHT
+
+			try:
+				CAMERA_HEIGHT = int(arg.strip())
+			except ValueError:
+				warning("No fue posible configurar el alto del frame, se usara por defecto " + CAMERA_HEIGHT)
+
+		elif opt == "--camera-quality":
+			global CAMERA_QUALITY
+
+			try:
+				quality = int(arg.strip())
+
+				if quality > 0 and quality < 101:
+					CAMERA_QUALITY = quality
+				else:
+					warning("Calidad de frame fuera de rango [1, 100]")
+			except ValueError:
+				error("No es posible interpretar " + arg + " como calidad de frame")
+
+		elif opt == "--camera-fps":
+			global CAMERA_FPS
+
+			try:
+				fps = int(arg.strip())
+
+				CAMERA_FPS = fps
+			except:
+				warning("FPS invalido, se usara por defecto %s fps" % CAMERA_FPS)
+
+		elif opt == "--camera-mtu":
+			global CAMERA_MTU
+
+			try:
+				mtu = int(arg.strip())
+
+				CAMERA_MTU = mtu
+			except:
+				warning("MTU invalido, se usara por defecto %s" % CAMERA_MTU)
+
+		elif opt == "--version":
+			print VERSION
+			sys.exit(0)
+
+
+	init()
+
+
+if __name__ == "__main__":
+	print "Bienvenido al modulo de comandos."
+	print "  Semillero de Sistemas Embebidos SISE"
+	print "    * Sergio Monsalve"
+	print "    * Sebastian Garces"
+	print "    * Felipe Tovar"
+	print "    * Alejandro Salgado"
+	print "    * Mateo Olaya Bernal"
+	print "  2014 EAFIT - Medellin Colombia"
+	print ""
+
+	main(sys.argv[1:])

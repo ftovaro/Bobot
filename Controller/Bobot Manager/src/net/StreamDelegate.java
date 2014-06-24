@@ -6,7 +6,7 @@
 
 package net;
 
-import java.net.Socket;
+import java.net.InetAddress;
 
 /**
  *
@@ -14,6 +14,6 @@ import java.net.Socket;
  */
 public interface StreamDelegate {
     public void didReceiveDataFrom(Stream stream, Object data);
-    public void didConnectedClient(Stream stream, Socket client);
+    public void didConnectedClient(Stream stream, InetAddress client);
     public void didDisconnectedClient(Stream stream);
 }

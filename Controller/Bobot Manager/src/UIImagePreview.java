@@ -3,7 +3,7 @@ import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.Font;
 import java.awt.Graphics;
-import java.awt.image.BufferedImage;
+import java.net.InetAddress;
 import java.util.Timer;
 import java.util.TimerTask;
 import javax.swing.JPanel;
@@ -22,9 +22,10 @@ import net.ImageFrame;
 public class UIImagePreview extends JPanel {
     private ImageFrame image;
     private Font font = new Font("Monospaced", Font.PLAIN, 18); 
-    private String remoteHost = null;
+    private InetAddress remoteHost = null;
     private String frameRate = "0 fps";
     private boolean isDebug = false;
+    private boolean isTCP = true;
     private long frameCount;
     
     public UIImagePreview() {
@@ -40,7 +41,7 @@ public class UIImagePreview extends JPanel {
 
             @Override
             public void run() {
-                frameRate = frameCount + " fps";
+                frameRate = (frameCount) + " fps";
                 
                 frameCount = 0;
                 repaint();
@@ -58,14 +59,18 @@ public class UIImagePreview extends JPanel {
        repaint();
     }
     
-    public void setRemoteHost(String str) {
-        remoteHost = str;
+    public void setRemoteHost(InetAddress addr) {
+        remoteHost = addr;
         
         repaint();
     }
     
     public void setDebug(boolean debug) {
         this.isDebug = debug;
+    }
+    
+    public void isTCP(boolean tcp) {
+        isTCP = tcp;
     }
     
     public void close() {
@@ -94,7 +99,9 @@ public class UIImagePreview extends JPanel {
         }   
         
         if (remoteHost != null && !remoteHost.equals("")) {
-            g.drawString(("Conectado: " + remoteHost), 10, 20);
+            String header = (isTCP) ? "Conectado: " : "UDP Datagrama; De: ";
+            
+            g.drawString((header + remoteHost.getHostAddress()), 10, 20);
         } else {
             g.drawString("Sin conexión", 10, 20);
         }
@@ -105,10 +112,29 @@ public class UIImagePreview extends JPanel {
            if (isDebug) {
                 g.drawString(" > @size: " + image.getSize() + " bytes", 10, 60);
            
-                long delay = (System.currentTimeMillis() - image.getCreated());
+                long currentTime = System.currentTimeMillis();
+                
                 g.drawString(" > @delay_local: " 
-                   + delay
+                   + (currentTime - image.getCreated())
                    + "ms", 10, 80);
+                
+                if (image.getRemoteTimestamp() > 0) {
+                    long delay = ((currentTime / 1000) - image.getRemoteTimestamp());
+                    
+                    if (delay < 10000) {
+                        g.drawString(" > @delay_remote: " 
+                            + delay
+                            + " sec(s)", 10, 100);
+                    } else {
+                        g.drawString(" > @delay_remote: fuera de rango" 
+                            , 10, 100);
+                    }
+                    
+                } else {
+                    g.drawString(" > @delay_remote: no disponible"
+                        , 10, 100);
+                }
+                
            }
         } catch (Exception e) { }
     }

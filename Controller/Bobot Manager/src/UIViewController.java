@@ -1,6 +1,7 @@
 
 import java.awt.image.BufferedImage;
 import java.io.IOException;
+import java.net.InetAddress;
 import java.net.Socket;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -22,6 +23,7 @@ import net.StreamDelegate;
  */
 public class UIViewController extends javax.swing.JFrame implements StreamDelegate {
     private ImageStream videoStream;
+    
     /**
      * Creates new form UIViewController
      */
@@ -29,11 +31,16 @@ public class UIViewController extends javax.swing.JFrame implements StreamDelega
         initComponents();
         
         try {
-            videoStream = new ImageStream(9998);
+            videoStream = new ImageStream(9998, Stream.UDP);
             videoStream.setDelegate(this);
             videoStream.setTimeout(1000);
-        } catch (IOException ex) {
-            JOptionPane.showMessageDialog(this, ex.getLocalizedMessage(), "ERROR", JOptionPane.ERROR_MESSAGE);
+            videoStream.setMTU(7981);
+            
+            new ImageStream(9999, Stream.TCP);
+            
+        } catch (Exception ex) {
+            JOptionPane.showMessageDialog(this, ex.getLocalizedMessage(), 
+                    "ERROR", JOptionPane.ERROR_MESSAGE);
         }
         
     }
@@ -215,8 +222,11 @@ public class UIViewController extends javax.swing.JFrame implements StreamDelega
     }
 
     @Override
-    public void didConnectedClient(Stream stream, Socket client) {
-        previewFrame.setRemoteHost(client.getInetAddress().getHostName());
+    public void didConnectedClient(Stream stream, InetAddress client) {
+        if (stream.getConnectionMode() == Stream.UDP) previewFrame.isTCP(false);
+        else previewFrame.isTCP(true);
+        
+        previewFrame.setRemoteHost(client);
     }
 
     @Override
