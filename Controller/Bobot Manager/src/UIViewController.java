@@ -6,10 +6,10 @@ import java.net.Socket;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.swing.JOptionPane;
-import net.ImageFrame;
-import net.ImageStream;
-import net.Stream;
-import net.StreamDelegate;
+import sise.network.Network;
+import sise.network.NetworkDelegate;
+import sise.video.Frame;
+import sise.video.VideoStream;
 
 /*
  * To change this license header, choose License Headers in Project Properties.
@@ -21,8 +21,9 @@ import net.StreamDelegate;
  *
  * @author molayab
  */
-public class UIViewController extends javax.swing.JFrame implements StreamDelegate {
-    private ImageStream videoStream;
+public class UIViewController extends javax.swing.JFrame {
+    // private ImageStream videoStream;
+    private VideoStream vid;
     
     /**
      * Creates new form UIViewController
@@ -31,12 +32,36 @@ public class UIViewController extends javax.swing.JFrame implements StreamDelega
         initComponents();
         
         try {
-            videoStream = new ImageStream(9998, Stream.UDP);
-            videoStream.setDelegate(this);
-            videoStream.setTimeout(1000);
-            videoStream.setMTU(7981);
+            //videoStream = new ImageStream(9998, Stream.UDP);
+            //videoStream.setDelegate(this);
+            //videoStream.setTimeout(1000);
+            //videoStream.setMTU(7981);
             
-            new ImageStream(9999, Stream.TCP);
+            //new ImageStream(9999, Stream.TCP);
+            
+            vid = new VideoStream(5555, 7981);
+            
+            vid.setDelegate(new NetworkDelegate() {
+
+                @Override
+                public void didConnectClient(Network net, InetAddress cli) {
+                    
+                }
+
+                @Override
+                public void didDisconnectClient(Network net) {
+                    
+                }
+
+                @Override
+                public void didReceiveData(Network net, Object data) {
+                    if (net instanceof VideoStream) {
+                        if (data instanceof Frame) {
+                            previewFrame.addFrame((Frame) data);
+                        }
+                    }
+                }
+            });
             
         } catch (Exception ex) {
             JOptionPane.showMessageDialog(this, ex.getLocalizedMessage(), 
@@ -180,7 +205,7 @@ public class UIViewController extends javax.swing.JFrame implements StreamDelega
 
     private void jButton1ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton1ActionPerformed
         // TODO add your handling code here:
-        videoStream.disconnect();
+        //videoStream.disconnect();
         previewFrame.close();
     }//GEN-LAST:event_jButton1ActionPerformed
 
@@ -214,23 +239,4 @@ public class UIViewController extends javax.swing.JFrame implements StreamDelega
     private UIImagePreview previewFrame;
     // End of variables declaration//GEN-END:variables
 
-    @Override
-    public void didReceiveDataFrom(Stream stream, Object data) {
-        if (data instanceof ImageFrame) {
-            previewFrame.addFrame((ImageFrame) data);
-        }
-    }
-
-    @Override
-    public void didConnectedClient(Stream stream, InetAddress client) {
-        if (stream.getConnectionMode() == Stream.UDP) previewFrame.isTCP(false);
-        else previewFrame.isTCP(true);
-        
-        previewFrame.setRemoteHost(client);
-    }
-
-    @Override
-    public void didDisconnectedClient(Stream stream) {
-        previewFrame.setRemoteHost(null);
-    }
 }

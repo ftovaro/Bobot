@@ -4,7 +4,7 @@
  * and open the template in the editor.
  */
 
-package net;
+package sise.network;
 
 import java.net.InetAddress;
 
@@ -12,8 +12,8 @@ import java.net.InetAddress;
  *
  * @author molayab
  */
-public interface StreamDelegate {
-    public void didReceiveDataFrom(Stream stream, Object data);
-    public void didConnectedClient(Stream stream, InetAddress client);
-    public void didDisconnectedClient(Stream stream);
+public interface NetworkDelegate {
+    public void didConnectClient(Network net, InetAddress cli);
+    public void didDisconnectClient(Network net);
+    public void didReceiveData(Network net, Object data);
 }

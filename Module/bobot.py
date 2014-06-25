@@ -7,6 +7,7 @@ import sys
 import time
 import getopt
 import socket
+import struct
 from threading import Thread
 
 HEADER = '\033[95m'
@@ -99,7 +100,7 @@ def loopmain():
 			# time.sleep(0)
 		except Exception:
 			channel.close()
-			error("Ocurrio un error fatal en la comunicacion", fatal = True)
+			error("Ocurrio un error fatal en la comunicacion", fatal = False)
 		except KeyboardInterrupt:
 			channel.close()
 			break
@@ -136,7 +137,16 @@ def loopcam():
 
 	ok("La camara esta lista para el Streaming")
 
+	i = 0
+
 	while True:
+		i += 1
+		sync = 0
+
+		if i == 65535:
+			sync = 1
+			i = 0
+
 		try:
 			ret, frame = capture.read()
 			result, image = cv2.imencode('.jpg', frame, encode)
@@ -144,15 +154,19 @@ def loopcam():
 			sender = io.BytesIO(image)
 
 			while True:
-				chunk = sender.read(CAMERA_MTU)
+				payload = sender.read(CAMERA_MTU - 8)
 
-				if chunk == "" or not chunk:
+				if payload == "" or not payload:
 					break
 
-				channel.sendto(chunk, (IP, CAMERA_PORT))	
+				header = struct.pack("!HHI", sync, i, time.time())
+
+				channel.sendto(header + payload, (IP, CAMERA_PORT))	
 
 			time.sleep(1 / CAMERA_FPS)
 		except KeyboardInterrupt:
+			print ""
+
 			channel.close()
 			info("Flujo de datos detenido")
 			ok("Streaming finalizado")

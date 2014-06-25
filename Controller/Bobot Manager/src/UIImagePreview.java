@@ -7,7 +7,7 @@ import java.net.InetAddress;
 import java.util.Timer;
 import java.util.TimerTask;
 import javax.swing.JPanel;
-import net.ImageFrame;
+import sise.video.Frame;
 
 /*
  * To change this license header, choose License Headers in Project Properties.
@@ -20,7 +20,7 @@ import net.ImageFrame;
  * @author molayab
  */
 public class UIImagePreview extends JPanel {
-    private ImageFrame image;
+    private Frame image;
     private Font font = new Font("Monospaced", Font.PLAIN, 18); 
     private InetAddress remoteHost = null;
     private String frameRate = "0 fps";
@@ -51,7 +51,7 @@ public class UIImagePreview extends JPanel {
         
     }
     
-    public void addFrame(ImageFrame image) {
+    public void addFrame(Frame image) {
        this.image = image;
        
        frameCount++;
@@ -109,32 +109,10 @@ public class UIImagePreview extends JPanel {
         try {
            g.drawString(("Frame: " + frameRate), 10, 40); 
            
-           if (isDebug) {
-                g.drawString(" > @size: " + image.getSize() + " bytes", 10, 60);
-           
-                long currentTime = System.currentTimeMillis();
-                
-                g.drawString(" > @delay_local: " 
-                   + (currentTime - image.getCreated())
-                   + "ms", 10, 80);
-                
-                if (image.getRemoteTimestamp() > 0) {
-                    long delay = ((currentTime / 1000) - image.getRemoteTimestamp());
-                    
-                    if (delay < 10000) {
-                        g.drawString(" > @delay_remote: " 
-                            + delay
-                            + " sec(s)", 10, 100);
-                    } else {
-                        g.drawString(" > @delay_remote: fuera de rango" 
-                            , 10, 100);
-                    }
-                    
-                } else {
-                    g.drawString(" > @delay_remote: no disponible"
-                        , 10, 100);
-                }
-                
+           if (isDebug) {                
+                g.drawString((" > Timestamp paquete: " + image.getTimestamp()), 10, 60);
+                g.drawString((" > Sequence paquete: " + image.getSequence()), 10, 80);
+                g.drawString((" > SYNC paquete: " + ((image.isSync()) ? "SI" : "NO")), 10, 100);
            }
         } catch (Exception e) { }
     }

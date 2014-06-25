@@ -4,17 +4,12 @@
  * and open the template in the editor.
  */
 
-package net;
-
-import java.util.List;
+package sise.bobot;
 
 /**
  *
  * @author molayab
  */
-abstract public class Controller {
-    protected int throttle;
-    protected int direction;
-    protected List<Boolean> buttons;
+public class Bobot {
     
 }
