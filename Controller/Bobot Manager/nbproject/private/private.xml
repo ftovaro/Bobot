@@ -4,11 +4,12 @@
     <open-files xmlns="http://www.netbeans.org/ns/projectui-open-files/2">
         <group>
             <file>file:/Users/molayab/Developer/Camera/src/UIViewController.java</file>
-            <file>file:/Users/molayab/Developer/Camera/src/sise/video/Frame.java</file>
+            <file>file:/Users/molayab/Developer/Camera/src/sise/controller/CameraController.java</file>
+            <file>file:/Users/molayab/Developer/Camera/src/sise/controller/BobotController.java</file>
             <file>file:/Users/molayab/Developer/Camera/src/UIImagePreview.java</file>
-            <file>file:/Users/molayab/Developer/Camera/src/sise/network/Network.java</file>
+            <file>file:/Users/molayab/Developer/Camera/src/sise/controller/Communication.java</file>
+            <file>file:/Users/molayab/Developer/Camera/src/sise/network/TCPStream.java</file>
             <file>file:/Users/molayab/Developer/Camera/src/sise/network/UDPStream.java</file>
-            <file>file:/Users/molayab/Developer/Camera/src/sise/video/VideoStream.java</file>
         </group>
     </open-files>
 </project-private>
